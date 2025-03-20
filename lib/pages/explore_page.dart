@@ -11,13 +11,8 @@ class ExplorePage extends StatefulWidget {
 }
 
 class _ExplorePageState extends State<ExplorePage> {
-  // Hive box for storing tasks
   late Box<Task> _tasksBox;
-
-  // Controller for adding new tasks
   final TextEditingController _taskController = TextEditingController();
-
-  // Loading state
   bool _isLoading = true;
 
   @override
@@ -26,56 +21,94 @@ class _ExplorePageState extends State<ExplorePage> {
     _initHive();
   }
 
-  // Initialize Hive and open the tasks box
   Future<void> _initHive() async {
-    await Hive.initFlutter(); // Initialize Hive
+    await Hive.initFlutter();
     if (!Hive.isAdapterRegistered(TaskAdapter().typeId)) {
-      Hive.registerAdapter(TaskAdapter()); // Register the Task adapter
+      Hive.registerAdapter(TaskAdapter());
     }
-    _tasksBox = await Hive.openBox<Task>('tasks'); // Open the tasks box
+    _tasksBox = await Hive.openBox<Task>('tasks');
     setState(() {
-      _isLoading = false; // Set loading to false after initialization
+      _isLoading = false;
     });
   }
 
-  // Function to add a new task
   void _addTask() {
     if (_taskController.text.isNotEmpty) {
       final newTask = Task(
         title: _taskController.text,
         isCompleted: false,
       );
-      _tasksBox.add(newTask); // Save to Hive
-      _taskController.clear(); // Clear the input field
-      setState(() {}); // Refresh the UI
+      _tasksBox.add(newTask);
+      _taskController.clear();
+      setState(() {});
     }
   }
 
-  // Function to toggle task completion
   void _toggleTaskCompletion(int index) {
     final task = _tasksBox.getAt(index);
     if (task != null) {
-      task.isCompleted = !task.isCompleted;
-      _tasksBox.putAt(index, task); // Update in Hive
-      setState(() {}); // Refresh the UI
+      final updatedTask = Task(
+        title: task.title,
+        isCompleted: !task.isCompleted,
+      );
+      _tasksBox.putAt(index, updatedTask);
+      setState(() {});
     }
   }
 
-  // Function to delete a task
   void _deleteTask(int index) {
-    _tasksBox.deleteAt(index); // Delete from Hive
-    setState(() {}); // Refresh the UI
+    _tasksBox.deleteAt(index);
+    setState(() {});
+  }
+
+  void _editTask(int index, String currentTitle) {
+    TextEditingController editController = TextEditingController(text: currentTitle);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Edit Task"),
+          content: TextField(
+            controller: editController,
+            decoration: InputDecoration(hintText: "Update your task"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                if (editController.text.isNotEmpty) {
+                  final oldTask = _tasksBox.getAt(index);
+                  if (oldTask != null) {
+                    final updatedTask = Task(
+                      title: editController.text,
+                      isCompleted: oldTask.isCompleted,
+                    );
+                    _tasksBox.putAt(index, updatedTask);
+                    setState(() {});
+                  }
+                }
+                Navigator.pop(context);
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _isLoading
-          ? Center(child: CircularProgressIndicator()) // Show loading indicator
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Search Bar and Filter Button
                 Padding(
                   padding: const EdgeInsets.only(bottom: 15),
                   child: Row(
@@ -106,14 +139,11 @@ class _ExplorePageState extends State<ExplorePage> {
                     ],
                   ),
                 ),
-
-                // Free Expert Consultation Card
                 SizedBox(
                   height: 200,
                   child: Card(
                     color: Colors.green.shade50,
                     elevation: 0.1,
-                    shadowColor: Colors.green.shade50,
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Row(
@@ -146,8 +176,6 @@ class _ExplorePageState extends State<ExplorePage> {
                     ),
                   ),
                 ),
-
-                // To-Do List Section
                 Padding(
                   padding: const EdgeInsets.only(top: 20),
                   child: Text(
@@ -163,7 +191,7 @@ class _ExplorePageState extends State<ExplorePage> {
                   builder: (context, Box<Task> box, _) {
                     return ListView.builder(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(), // Disable scrolling for the inner ListView
+                      physics: NeverScrollableScrollPhysics(),
                       itemCount: box.length,
                       itemBuilder: (context, index) {
                         final task = box.getAt(index);
@@ -173,20 +201,17 @@ class _ExplorePageState extends State<ExplorePage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: task?.isCompleted ?? false ? Colors.green.shade50 : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
+                          child: ListTile(
+                            leading: Checkbox(
+                              value: task?.isCompleted ?? false,
+                              onChanged: (value) {
+                                _toggleTaskCompletion(index);
+                              },
+                              activeColor: Colors.green,
                             ),
-                            child: ListTile(
-                              leading: Checkbox(
-                                value: task?.isCompleted ?? false,
-                                onChanged: (value) {
-                                  _toggleTaskCompletion(index);
-                                },
-                                activeColor: Colors.green,
-                              ),
-                              title: Text(
+                            title: GestureDetector(
+                              onTap: () => _editTask(index, task?.title ?? ''),
+                              child: Text(
                                 task?.title ?? '',
                                 style: TextStyle(
                                   decoration: task?.isCompleted ?? false
@@ -196,12 +221,21 @@ class _ExplorePageState extends State<ExplorePage> {
                                   fontSize: 16,
                                 ),
                               ),
-                              trailing: IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red.shade400),
-                                onPressed: () {
-                                  _deleteTask(index);
-                                },
-                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () => _editTask(index, task?.title ?? ''),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red.shade400),
+                                  onPressed: () {
+                                    _deleteTask(index);
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -209,8 +243,6 @@ class _ExplorePageState extends State<ExplorePage> {
                     );
                   },
                 ),
-
-                // Add New Task Section
                 Padding(
                   padding: const EdgeInsets.only(top: 20),
                   child: Card(

@@ -1,9 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/cow_model.dart';
 import 'cow_form_page.dart';
+// import '../pages/scanner_page.dart';
+import 'scanner.dart'; // Adjust the import path as needed
 
 class CowManagementScreen extends StatefulWidget {
   const CowManagementScreen({super.key});
@@ -75,18 +76,92 @@ class _CowManagementScreenState extends State<CowManagementScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CowFormPage()),
-          );
-        },
-        label: Text('Add Cow'),
-        icon: Icon(Icons.add),
-        backgroundColor: Colors.green[700],
-      ),
+      floatingActionButton: _buildActionButtonRow(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildActionButtonRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildAddCowButton(),
+          const SizedBox(width: 16),
+          _buildScanQRButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddCowButton() {
+    return Flexible(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 120),
+        child: SizedBox(
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CowFormPage()),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add Cow'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[700],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScanQRButton() {
+    return Flexible(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 120),
+        child: SizedBox(
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ScannerPage(
+                    onCowScanned: (cow) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CowFormPage(
+                            cow: cow,
+                            index: cowBox.values.toList().indexOf(cow),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.qr_code),
+            label: const Text('Scan QR'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[700],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

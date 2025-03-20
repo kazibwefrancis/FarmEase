@@ -18,25 +18,22 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   image_picker: ^1.1.2
-  file_picker: ^5.3.3 # Add this line for document uploads
+  file_picker: ^5.3.3
+  mobile_scanner: ^5.1.1  # Added for QR scanning
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.6
-  hive_generator: ^2.0.0 # Add this line
+  hive_generator: ^2.0.0
 
 flutter:
   uses-material-design: true
 
-  # Add your assets here
   assets:
-    - assets/  # This will include all files in the assets folder
-    # If you want to include specific files, you can do so like this:
-    # - assets/images/logo.png
-    # - assets/images/background.jpg
+    - assets/  # Include all files in the assets folder
 
-  # If you have custom fonts, you can add them like this:
+  # If you have custom fonts, uncomment and add them here
   # fonts:
   #   - family: Schyler
   #     fonts:

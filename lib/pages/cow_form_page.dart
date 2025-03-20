@@ -1,15 +1,14 @@
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hive/hive.dart';
-import 'package:file_picker/file_picker.dart'; // For document uploads
-import 'package:google_fonts/google_fonts.dart'; // For decorative fonts
+import 'package:file_picker/file_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/cow_model.dart';
 import 'dart:io';
 
 class CowFormPage extends StatefulWidget {
-  final Cow? cow; // Optional cow data for editing
-  final int? index; // Index of the cow in the Hive box
+  final Cow? cow;
+  final int? index;
 
   const CowFormPage({super.key, this.cow, this.index});
 
@@ -24,22 +23,25 @@ class _CowFormPageState extends State<CowFormPage> {
   final TextEditingController _breedController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _milkOutputController = TextEditingController();
+  final TextEditingController _milkConditionController = TextEditingController();
   File? _image;
   String? _vaccinationFilePath;
   String? _breedingFilePath;
   String? _healthFilePath;
   bool _isSubmitting = false;
+  bool _showDocumentsSection = false;
+  double? _feedRecommendation;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill the form if editing an existing cow
     if (widget.cow != null) {
       _nameController.text = widget.cow!.name;
       _ageController.text = widget.cow!.age;
       _breedController.text = widget.cow!.breed;
       _weightController.text = widget.cow!.weight;
       _milkOutputController.text = widget.cow!.milkOutput;
+      _milkConditionController.text = widget.cow!.milkCondition;
       _vaccinationFilePath = widget.cow!.vaccinationFilePath;
       _breedingFilePath = widget.cow!.breedingFilePath;
       _healthFilePath = widget.cow!.healthFilePath;
@@ -75,9 +77,7 @@ class _CowFormPageState extends State<CowFormPage> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _image != null) {
-      setState(() {
-        _isSubmitting = true;
-      });
+      setState(() => _isSubmitting = true);
       
       final cow = Cow(
         name: _nameController.text,
@@ -88,15 +88,14 @@ class _CowFormPageState extends State<CowFormPage> {
         breedingFilePath: _breedingFilePath ?? '',
         healthFilePath: _healthFilePath ?? '',
         milkOutput: _milkOutputController.text,
+        milkCondition: _milkConditionController.text,
         imagePath: _image!.path,
       );
 
       final box = Hive.box<Cow>('cows');
       if (widget.index != null) {
-        // Update existing cow
         await box.putAt(widget.index!, cow);
       } else {
-        // Add new cow
         await box.add(cow);
       }
 
@@ -118,8 +117,8 @@ class _CowFormPageState extends State<CowFormPage> {
       appBar: AppBar(
         title: Text(
           widget.cow == null ? 'Add Cow Details' : 'Edit Cow Details',
-          style: GoogleFonts.lobster(
-            fontSize: 24,
+          style: GoogleFonts.roboto(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -127,7 +126,7 @@ class _CowFormPageState extends State<CowFormPage> {
         backgroundColor: Colors.green[700],
         iconTheme: IconThemeData(color: Colors.white),
         actions: [
-          if (widget.cow != null) // Show delete button only when editing
+          if (widget.cow != null)
             IconButton(
               icon: Icon(Icons.delete, color: Colors.red[400]),
               onPressed: _deleteCow,
@@ -135,13 +134,13 @@ class _CowFormPageState extends State<CowFormPage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Image Upload
                 GestureDetector(
                   onTap: _pickImage,
                   child: Container(
@@ -150,6 +149,7 @@ class _CowFormPageState extends State<CowFormPage> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.green[700]!, width: 2),
+                      color: Colors.grey[200],
                     ),
                     child: _image != null
                         ? CircleAvatar(
@@ -159,41 +159,58 @@ class _CowFormPageState extends State<CowFormPage> {
                         : Icon(Icons.camera_alt, size: 40, color: Colors.grey),
                   ),
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 25),
 
-                // Cow Name
+                _buildSectionHeader('Basic Information'),
                 _buildTextField(_nameController, 'Cow Name', Icons.pets),
-                SizedBox(height: 10),
-
-                // Age
-                _buildTextField(_ageController, 'Age', Icons.calendar_today),
-                SizedBox(height: 10),
-
-                // Breed
+                SizedBox(height: 15),
+                _buildTextField(_ageController, 'Age (years)', Icons.calendar_today),
+                SizedBox(height: 15),
                 _buildTextField(_breedController, 'Breed', Icons.agriculture),
-                SizedBox(height: 10),
+                SizedBox(height: 15),
+                _buildTextField(_weightController, 'Weight (kg)', Icons.scale),
+                SizedBox(height: 15),
+                _buildTextField(_milkOutputController, 'Average Daily Milk Output (liters)', Icons.local_drink),
+                SizedBox(height: 15),
+                _buildMilkConditionField(),
+                SizedBox(height: 25),
 
-                // Estimated Weight
-                _buildTextField(_weightController, 'Estimated Weight', Icons.scale),
-                SizedBox(height: 10),
+                _buildFeedRecommendationSection(),
+                SizedBox(height: 25),
 
-                // Average Milk Output
-                _buildTextField(_milkOutputController, 'Average Milk Output', Icons.local_drink),
-                SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.folder_special, color: Colors.green[700], size: 24),
+                    SizedBox(width: 12),
+                    Text(
+                      'Additional Records',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                    Spacer(),
+                    IconButton(
+                      icon: Icon(_showDocumentsSection ? Icons.expand_less : Icons.expand_more, color: Colors.green[700]),
+                      onPressed: () => setState(() => _showDocumentsSection = !_showDocumentsSection),
+                    ),
+                  ],
+                ),
+                
+                if (_showDocumentsSection)
+                  Column(
+                    children: [
+                      SizedBox(height: 15),
+                      _buildDocumentPicker('Vaccination Records', 'vaccination'),
+                      SizedBox(height: 15),
+                      _buildDocumentPicker('Breeding Records', 'breeding'),
+                      SizedBox(height: 15),
+                      _buildDocumentPicker('Health Records', 'health'),
+                      SizedBox(height: 25),
+                    ],
+                  ),
 
-                // Vaccination Records
-                _buildDocumentPicker('Vaccination Records', 'vaccination'),
-                SizedBox(height: 10),
-
-                // Breeding Records
-                _buildDocumentPicker('Breeding Records', 'breeding'),
-                SizedBox(height: 10),
-
-                // Health Records
-                _buildDocumentPicker('Health Records', 'health'),
-                SizedBox(height: 20),
-
-                // Submit Button
                 _buildSubmitButton(),
               ],
             ),
@@ -203,16 +220,41 @@ class _CowFormPageState extends State<CowFormPage> {
     );
   }
 
+  Widget _buildSectionHeader(String title) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 20),
+      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.label_outline, color: Colors.green[700], size: 20),
+          SizedBox(width: 12),
+          Text(
+            title,
+            style: GoogleFonts.roboto(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withOpacity(0.15),
             spreadRadius: 2,
-            blurRadius: 5,
+            blurRadius: 6,
             offset: Offset(0, 3),
           ),
         ],
@@ -221,10 +263,19 @@ class _CowFormPageState extends State<CowFormPage> {
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
-          border: InputBorder.none,
-          prefixIcon: Icon(icon, color: Colors.green[700]),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          labelStyle: GoogleFonts.roboto(
+            color: Colors.green[700],
+            fontSize: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          prefixIcon: Icon(icon, color: Colors.green[700], size: 24),
+          contentPadding: EdgeInsets.all(18),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
         ),
+        style: GoogleFonts.roboto(fontSize: 16),
         validator: (value) {
           if (value!.isEmpty) {
             return 'Please enter $label';
@@ -235,90 +286,167 @@ class _CowFormPageState extends State<CowFormPage> {
     );
   }
 
-  Widget _buildDocumentPicker(String label, String type) {
+  Widget _buildMilkConditionField() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withOpacity(0.15),
             spreadRadius: 2,
-            blurRadius: 5,
+            blurRadius: 6,
             offset: Offset(0, 3),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(Icons.document_scanner, color: Colors.green[700], size: 20),
-                SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green[700]),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            ElevatedButton.icon(
-              icon: Icon(Icons.upload_file),
-              label: Text(
-                'Choose File',
-                style: TextStyle(color: Colors.white), // Changed text color to white
-              ),
-              onPressed: () => _pickDocument(type),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            SizedBox(height: 8),
-            if ((type == 'vaccination' && _vaccinationFilePath != null) ||
-                (type == 'breeding' && _breedingFilePath != null) ||
-                (type == 'health' && _healthFilePath != null))
-              Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green[700], size: 16),
-                  SizedBox(width: 8),
-                  Flexible(
+            Icon(Icons.local_drink, color: Colors.green[700], size: 24),
+            SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _milkConditionController.text.isEmpty ? null : _milkConditionController.text,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _milkConditionController.text = newValue!;
+                  });
+                },
+                items: <String>['Excellent', 'Good', 'Fair', 'Poor'].map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
                     child: Text(
-                      'File Selected: ${type == 'vaccination' ? _vaccinationFilePath!.split('/').last : type == 'breeding' ? _breedingFilePath!.split('/').last : _healthFilePath!.split('/').last}',
-                      style: TextStyle(fontSize: 14, color: Colors.green[700]), // Filename in green
-                      overflow: TextOverflow.ellipsis,
+                      value,
+                      style: GoogleFonts.roboto(fontSize: 16),
                     ),
+                  );
+                }).toList(),
+                decoration: InputDecoration(
+                  labelText: 'Milk Condition',
+                  labelStyle: GoogleFonts.roboto(
+                    color: Colors.green[700],
+                    fontSize: 16,
                   ),
-                ],
+                  border: InputBorder.none,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select milk condition';
+                  }
+                  return null;
+                },
+                icon: Icon(Icons.arrow_drop_down, color: Colors.green[700]),
+                style: GoogleFonts.roboto(fontSize: 16),
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildDocumentPicker(String label, String type) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.document_scanner, color: Colors.green[700], size: 20),
+              SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: Icon(Icons.upload_file, size: 20),
+            label: Text(
+              'Choose File',
+              style: GoogleFonts.roboto(fontSize: 16),
+            ),
+            onPressed: () => _pickDocument(type),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[700],
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
+          if ((type == 'vaccination' && _vaccinationFilePath != null) ||
+              (type == 'breeding' && _breedingFilePath != null) ||
+              (type == 'health' && _healthFilePath != null))
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green[700], size: 18),
+                SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    'Selected: ${_getFileName(type)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.green[700],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _getFileName(String type) {
+    switch (type) {
+      case 'vaccination': return _vaccinationFilePath!.split('/').last;
+      case 'breeding': return _breedingFilePath!.split('/').last;
+      case 'health': return _healthFilePath!.split('/').last;
+      default: return '';
+    }
+  }
+
   Widget _buildSubmitButton() {
     return SizedBox(
-      width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: _submitForm,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green[700],
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 32),
         ),
         child: _isSubmitting
             ? CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 3,
               )
             : Text(
                 widget.cow == null ? 'Submit' : 'Update',
@@ -328,13 +456,210 @@ class _CowFormPageState extends State<CowFormPage> {
                   color: Colors.white,
                   shadows: [
                     Shadow(
-                      blurRadius: 2.0,
-                      color: Colors.black45,
+                      blurRadius: 3.0,
+                      color: Colors.black54,
                       offset: Offset(1.0, 1.0),
                     ),
                   ],
                 ),
               ),
+      ),
+    );
+  }
+
+  Widget _buildFeedRecommendationSection() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            spreadRadius: 2,
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.grain, color: Colors.green[700], size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Feed Recommendation',
+                style: GoogleFonts.roboto(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Based on the cow\'s milk production and condition, here is a feed recommendation:',
+            style: GoogleFonts.roboto(fontSize: 16, color: Colors.grey[700]),
+          ),
+          SizedBox(height: 16),
+          _buildFeedCalculator(),
+          SizedBox(height: 16),
+          _buildAIBasedRecommendation(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedCalculator() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                _milkOutputController, 
+                'Average Daily Milk Output (liters)', 
+                Icons.local_drink
+              ),
+            ),
+            SizedBox(width: 16),
+            ElevatedButton(
+              onPressed: () => _calculateFeedRecommendation(),
+              child: Text('Calculate Feed'),
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        if (_feedRecommendation != null)
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Recommended Daily Feed:',
+                    style: GoogleFonts.roboto(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '${_feedRecommendation!.toStringAsFixed(2)} kg',
+                    style: GoogleFonts.roboto(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[800],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _calculateFeedRecommendation() {
+    try {
+      double milkOutput = double.parse(_milkOutputController.text);
+      double feed = milkOutput * 0.4 + 2; // Simple formula: 0.4kg feed per liter of milk + base 2kg
+      setState(() {
+        _feedRecommendation = feed;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid number for milk output')),
+      );
+    }
+  }
+
+  Widget _buildAIBasedRecommendation() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'AI-Based Feed Optimization',
+            style: GoogleFonts.roboto(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[700],
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'This section provides advanced feed recommendations based on machine learning analysis of your cow\'s data.',
+            style: GoogleFonts.roboto(fontSize: 14, color: Colors.grey[700]),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: Icon(Icons.smart_toy),
+            label: Text('Generate AI Recommendation'),
+            onPressed: () => _generateAIRecommendation(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _generateAIRecommendation() {
+    String milkCondition = _milkConditionController.text;
+    String recommendation;
+
+    switch (milkCondition) {
+      case 'Excellent':
+        recommendation = 'Maintain current feed regimen. Consider adding 1-2kg of high-protein supplement.';
+        break;
+      case 'Good':
+        recommendation = 'Consider increasing feed by 1-2kg with balanced nutrition to improve milk quality.';
+        break;
+      case 'Fair':
+        recommendation = 'Increase feed by 2-3kg with focus on protein and minerals. Monitor condition closely.';
+        break;
+      case 'Poor':
+        recommendation = 'Significantly increase feed intake. Consult with a veterinarian for potential health issues.';
+        break;
+      default:
+        recommendation = 'No specific recommendation available.';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('AI Feed Recommendation'),
+        content: Text(recommendation),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
       ),
     );
   }

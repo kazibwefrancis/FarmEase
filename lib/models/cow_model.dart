@@ -17,13 +17,13 @@ class Cow {
   final String weight;
 
   @HiveField(4)
-  final String vaccinationFilePath; // File path for vaccination record
+  final String? vaccinationFilePath; // Made nullable
 
   @HiveField(5)
-  final String breedingFilePath; // File path for breeding record
+  final String? breedingFilePath; // Made nullable
 
   @HiveField(6)
-  final String healthFilePath; // File path for health record
+  final String? healthFilePath; // Made nullable
 
   @HiveField(7)
   final String milkOutput;
@@ -31,15 +31,19 @@ class Cow {
   @HiveField(8)
   final String imagePath;
 
+  @HiveField(9)
+  final String milkCondition;
+
   Cow({
     required this.name,
     required this.age,
     required this.breed,
     required this.weight,
-    required this.vaccinationFilePath,
-    required this.breedingFilePath,
-    required this.healthFilePath,
+    this.vaccinationFilePath = '', // Provide default empty string
+    this.breedingFilePath = '',
+    this.healthFilePath = '',
     required this.milkOutput,
     required this.imagePath,
+    required this.milkCondition,
   });
 }
