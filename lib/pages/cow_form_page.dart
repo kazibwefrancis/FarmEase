@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:hive/hive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../models/cow_model.dart';
 import 'dart:io';
 
@@ -31,6 +32,7 @@ class _CowFormPageState extends State<CowFormPage> {
   bool _isSubmitting = false;
   bool _showDocumentsSection = false;
   double? _feedRecommendation;
+  Map<DateTime, String> _dailyMilkProduction = {};
 
   @override
   void initState() {
@@ -47,6 +49,14 @@ class _CowFormPageState extends State<CowFormPage> {
       _healthFilePath = widget.cow!.healthFilePath;
       if (widget.cow!.imagePath.isNotEmpty) {
         _image = File(widget.cow!.imagePath);
+      }
+      // Load existing daily milk production data
+      if (widget.cow!.dailyMilkProduction != null) {
+        _dailyMilkProduction = Map.fromEntries(
+          widget.cow!.dailyMilkProduction!.entries.map((entry) {
+            return MapEntry(DateTime.parse(entry.key as String), entry.value);
+          })
+        );
       }
     }
   }
@@ -90,6 +100,7 @@ class _CowFormPageState extends State<CowFormPage> {
         milkOutput: _milkOutputController.text,
         milkCondition: _milkConditionController.text,
         imagePath: _image!.path,
+        dailyMilkProduction: _dailyMilkProduction,
       );
 
       final box = Hive.box<Cow>('cows');
@@ -173,6 +184,9 @@ class _CowFormPageState extends State<CowFormPage> {
                 _buildTextField(_milkOutputController, 'Average Daily Milk Output (liters)', Icons.local_drink),
                 SizedBox(height: 15),
                 _buildMilkConditionField(),
+                SizedBox(height: 25),
+
+                _buildDailyMilkProductionSection(),
                 SizedBox(height: 25),
 
                 _buildFeedRecommendationSection(),
@@ -467,6 +481,148 @@ class _CowFormPageState extends State<CowFormPage> {
     );
   }
 
+  Widget _buildDailyMilkProductionSection() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            spreadRadius: 2,
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calendar_today, color: Colors.green[700], size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Daily Milk Production',
+                style: GoogleFonts.roboto(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Track daily milk production to monitor your cow\'s performance:',
+            style: GoogleFonts.roboto(fontSize: 16, color: Colors.grey[700]),
+          ),
+          SizedBox(height: 16),
+          _buildCalendarView(),
+          SizedBox(height: 16),
+          _buildAddProductionEntry(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalendarView() {
+    final now = DateTime.now();
+    final lastWeek = now.subtract(Duration(days: 7));
+
+    return Container(
+      height: 150,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 7,
+        itemBuilder: (context, index) {
+          final day = lastWeek.add(Duration(days: index));
+          final formattedDate = DateFormat('MMM d').format(day);
+          final production = _dailyMilkProduction[day] ?? '';
+
+          return Container(
+            width: 100,
+            margin: EdgeInsets.only(right: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    formattedDate,
+                    style: GoogleFonts.roboto(
+                      fontSize: 14,
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Divider(color: Colors.green[700]),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    production.isEmpty ? 'No data' : '$production L',
+                    style: GoogleFonts.roboto(
+                      fontSize: 16,
+                      color: Colors.green[800],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddProductionEntry() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTextField(
+            _milkOutputController, 
+            'Today\'s Milk Production (liters)', 
+            Icons.local_drink
+          ),
+        ),
+        SizedBox(width: 16),
+        ElevatedButton(
+          onPressed: () => _addDailyProduction(),
+          child: Text('Add Entry'),
+        ),
+      ],
+    );
+  }
+
+  void _addDailyProduction() {
+    try {
+      double milkOutput = double.parse(_milkOutputController.text);
+      final now = DateTime.now();
+      setState(() {
+        _dailyMilkProduction[now] = milkOutput.toStringAsFixed(1);
+        _milkOutputController.clear();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid number for milk output')),
+      );
+    }
+  }
+
   Widget _buildFeedRecommendationSection() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -572,13 +728,14 @@ class _CowFormPageState extends State<CowFormPage> {
   void _calculateFeedRecommendation() {
     try {
       double milkOutput = double.parse(_milkOutputController.text);
-      double feed = milkOutput * 0.4 + 2; // Simple formula: 0.4kg feed per liter of milk + base 2kg
+      double cowWeight = double.parse(_weightController.text);
+      double feed = (milkOutput * 0.5) + (cowWeight * 0.01) + 2;
       setState(() {
         _feedRecommendation = feed;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a valid number for milk output')),
+        SnackBar(content: Text('Please enter valid numbers for milk output and cow weight')),
       );
     }
   }

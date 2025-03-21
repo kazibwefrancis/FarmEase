@@ -20,6 +20,7 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^5.3.3
   mobile_scanner: ^5.1.1  # Added for QR scanning
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

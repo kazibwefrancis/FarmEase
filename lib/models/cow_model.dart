@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 part 'cow_model.g.dart';
 
@@ -17,33 +18,37 @@ class Cow {
   final String weight;
 
   @HiveField(4)
-  final String? vaccinationFilePath; // Made nullable
+  final String vaccinationFilePath;
 
   @HiveField(5)
-  final String? breedingFilePath; // Made nullable
+  final String breedingFilePath;
 
   @HiveField(6)
-  final String? healthFilePath; // Made nullable
+  final String healthFilePath;
 
   @HiveField(7)
   final String milkOutput;
 
   @HiveField(8)
-  final String imagePath;
+  final String milkCondition;
 
   @HiveField(9)
-  final String milkCondition;
+  final String imagePath;
+
+  @HiveField(10)
+  final Map<DateTime, String> dailyMilkProduction;
 
   Cow({
     required this.name,
     required this.age,
     required this.breed,
     required this.weight,
-    this.vaccinationFilePath = '', // Provide default empty string
-    this.breedingFilePath = '',
-    this.healthFilePath = '',
+    required this.vaccinationFilePath,
+    required this.breedingFilePath,
+    required this.healthFilePath,
     required this.milkOutput,
-    required this.imagePath,
     required this.milkCondition,
+    required this.imagePath,
+    this.dailyMilkProduction = const {},
   });
 }
