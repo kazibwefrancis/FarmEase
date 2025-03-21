@@ -1,8 +1,11 @@
 import 'package:farm_ease/pages/home_page.dart';
+// import 'package:farm_ease/pages/splashscreen.dart'; // Import the dedicated splash screen file
+import 'package:farm_ease/splashscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/cow_model.dart'; // Import the Cow model
 import 'models/task.dart'; // Import the Task model
+import 'dart:async';
 
 // Define the DateTimeAdapter
 class DateTimeAdapter extends TypeAdapter<DateTime> {
@@ -45,7 +48,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false, // Remove debug banner
-      home: const HomePage(), // Set HomePage as the initial screen
+      home: const SplashScreen(), // Set SplashScreen from splashscreen.dart as the initial screen
     );
   }
 }
