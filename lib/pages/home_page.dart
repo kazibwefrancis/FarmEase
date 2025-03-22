@@ -1,6 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
-import 'package:farm_ease/pages/cart_page.dart';
+import 'package:farm_ease/pages/report.dart';
 import 'package:farm_ease/pages/cow_management_screen.dart'; // Import the cow management screen
 import 'package:farm_ease/pages/explore_page.dart';
 import 'package:farm_ease/pages/profile_page.dart';
@@ -20,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   final pages = [
     const ExplorePage(),
     const CowManagementScreen(), // Replace ServicesPage with CowManagementScreen
-    const CartPage(),
+    const ReportPage(),
     const ProfilePage(),
   ];
 
@@ -32,8 +32,35 @@ class _HomePageState extends State<HomePage> {
       // Drawer for additional navigation options
       drawer: Drawer(
         child: ListView(
+          padding: EdgeInsets.zero,
           children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.green,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "FARMEASE",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "Your farming assistant",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             ListTile(
+              leading: Icon(Icons.cabin),
               title: Text('Cow Management'),
               onTap: () {
                 Navigator.pop(context); // Close the drawer
@@ -45,7 +72,38 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
-            // Add more drawer items here
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Settings'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                // Add your settings page route here
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.info),
+              title: Text('App Version'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                // Add your app version page route here
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.help),
+              title: Text('Help & Support'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                // Add your help & support page route here
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('Logout'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                // Add your logout functionality here
+              },
+            ),
           ],
         ),
       ),

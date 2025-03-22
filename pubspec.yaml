@@ -21,6 +21,10 @@ dependencies:
   file_picker: ^5.3.3
   mobile_scanner: ^5.1.1  # Added for QR scanning
   intl: ^0.20.2
+  pdf: ^3.8.0
+  fl_chart: ^0.70.1 
+  open_file: 3.5.10
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
