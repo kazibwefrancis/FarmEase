@@ -36,7 +36,7 @@ class _CowManagementScreenState extends State<CowManagementScreen> {
           },
           child: Text(
             'Cow Management',
-            style: GoogleFonts.lobster(
+            style: GoogleFonts.roboto(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: Colors.white,
